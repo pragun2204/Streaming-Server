@@ -1,0 +1,13 @@
+[build]
+  base    = "apps/web"
+  command = "npm run build"
+  publish = "apps/web/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA catch-all: serve index.html for every path so React Router works
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

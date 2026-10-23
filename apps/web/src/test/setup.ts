@@ -8,7 +8,7 @@ if (!globalThis.crypto) {
 if (!globalThis.crypto.subtle) {
   // @ts-ignore
   globalThis.crypto.subtle = {
-    digest: async (_algo: string, data: ArrayBuffer) => {
+    digest: async (_algo: string, _data: ArrayBuffer) => {
       // Mock SHA-256 returns 32 bytes
       return new Uint8Array(32).buffer;
     },
