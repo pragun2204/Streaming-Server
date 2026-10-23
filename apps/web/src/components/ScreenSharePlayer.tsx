@@ -52,10 +52,15 @@ export const ScreenSharePlayer: React.FC<ScreenSharePlayerProps> = ({
     if (audioTrack) {
       const stream = new MediaStream([audioTrack]);
       audioRef.current.srcObject = stream;
+      audioRef.current.autoplay = true;
+      audioRef.current.volume = mediaVolume;
+      void audioRef.current.play().catch(() => {
+        console.warn('Screen-share audio is waiting for browser playback permission');
+      });
     } else {
       audioRef.current.srcObject = null;
     }
-  }, [audioTrack]);
+  }, [audioTrack, mediaVolume]);
 
   // Sync volume with mediaVolume
   useEffect(() => {

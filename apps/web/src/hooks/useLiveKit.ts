@@ -90,6 +90,10 @@ export function useLiveKit(roomId: string | undefined) {
               } else {
                 // Voice chat audio
                 const audioEl = track.attach();
+                audioEl.autoplay = true;
+                void audioEl.play().catch(() => {
+                  console.warn('Remote voice audio is waiting for browser playback permission');
+                });
                 audioElementsRef.current.set(participant.identity, audioEl);
               }
             } else if (track.kind === Track.Kind.Video && pub.source === Track.Source.ScreenShare) {
@@ -177,16 +181,16 @@ export function useLiveKit(roomId: string | undefined) {
       let width = 1920;
       let height = 1080;
       let frameRate = 60;
-      let maxBitrate = 5_000_000;
+      let maxBitrate = 8_000_000;
 
       if (screenQuality === '1080p30') {
         frameRate = 30;
-        maxBitrate = 3_000_000;
+        maxBitrate = 5_000_000;
       } else if (screenQuality === '720p30') {
         width = 1280;
         height = 720;
         frameRate = 30;
-        maxBitrate = 1_500_000;
+        maxBitrate = 2_500_000;
       }
 
       await roomRef.current.localParticipant.setScreenShareEnabled(
@@ -206,6 +210,7 @@ export function useLiveKit(roomId: string | undefined) {
       // Get published screen share track for local preview
       const screenPub = roomRef.current.localParticipant.getTrackPublication(Track.Source.ScreenShare);
       if (screenPub && screenPub.track) {
+        screenPub.track.mediaStreamTrack.contentHint = 'detail';
         setScreenShareTrack(screenPub.track.mediaStreamTrack);
       }
 
