@@ -6,7 +6,6 @@ import {
   RemoteTrackPublication,
   RemoteParticipant,
   LocalTrackPublication,
-  createLocalAudioTrack,
 } from 'livekit-client';
 import { mediaApi } from '../lib/api';
 import { useVoiceStore } from '../stores/voiceStore';
@@ -126,13 +125,7 @@ export function useLiveKit(roomId: string | undefined) {
 
         await room.connect(url, token);
 
-        // Publish local mic track if not muted
-        if (!isMicMuted && !isDeafened) {
-          const audioTrack = await createLocalAudioTrack({
-            deviceId: audioInputDeviceId !== 'default' ? audioInputDeviceId : undefined,
-          });
-          await room.localParticipant.publishTrack(audioTrack);
-        }
+        await room.localParticipant.setMicrophoneEnabled(!isMicMuted && !isDeafened);
       } catch (err: any) {
         if (!isCancelled) {
           console.error('Failed to connect to LiveKit SFU:', err);
@@ -157,8 +150,19 @@ export function useLiveKit(roomId: string | undefined) {
   useEffect(() => {
     if (!roomRef.current || !isConnected) return;
     const shouldMute = isMicMuted || isDeafened;
-    roomRef.current.localParticipant.setMicrophoneEnabled(!shouldMute).catch((e) => {
-      console.warn('Error setting mic enabled:', e);
+    const participant = roomRef.current.localParticipant;
+    const microphonePublication = participant.getTrackPublication(Track.Source.Microphone);
+    const microphoneTrack = microphonePublication?.track;
+
+    if (microphoneTrack) {
+      const updateTrack = shouldMute ? microphoneTrack.mute() : microphoneTrack.unmute();
+      updateTrack.catch((error) => {
+        console.warn('Error updating microphone mute state:', error);
+      });
+    }
+
+    participant.setMicrophoneEnabled(!shouldMute).catch((error) => {
+      console.warn('Error setting microphone enabled state:', error);
     });
   }, [isMicMuted, isDeafened, isConnected]);
 
