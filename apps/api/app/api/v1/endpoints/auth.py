@@ -47,7 +47,7 @@ async def create_guest_session(
         value=raw_token,
         httponly=True,
         max_age=settings.SESSION_EXPIRE_HOURS * 3600,
-        samesite="lax",
+        samesite="none" if settings.ENVIRONMENT == "production" else "lax",
         secure=settings.ENVIRONMENT == "production",
         path="/",
     )
@@ -80,5 +80,7 @@ async def logout(
     response.delete_cookie(
         key=settings.SESSION_COOKIE_NAME,
         path="/",
+        samesite="none" if settings.ENVIRONMENT == "production" else "lax",
+        secure=settings.ENVIRONMENT == "production",
     )
     return {"status": "logged_out"}
