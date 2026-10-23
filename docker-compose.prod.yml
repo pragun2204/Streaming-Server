@@ -1,0 +1,81 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: watchparty-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+      - livekit
+
+  db:
+    image: postgres:16-alpine
+    container_name: watchparty-prod-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-watchparty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+      POSTGRES_DB: ${POSTGRES_DB:-watchparty_prod}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: watchparty-prod-redis
+    restart: always
+    volumes:
+      - redisdata_prod:/data
+
+  livekit:
+    image: livekit/livekit-server:v1.13.10
+    container_name: watchparty-prod-livekit
+    restart: always
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50200:50000-50200/udp"
+    volumes:
+      - ./infra/livekit/livekit.yaml:/etc/livekit.yaml
+    environment:
+      - LIVEKIT_KEYS=${LIVEKIT_API_KEY:?Required}: ${LIVEKIT_API_SECRET:?Required}
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: watchparty-prod-api
+    restart: always
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-watchparty}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-watchparty_prod}
+      REDIS_URL: redis://redis:6379/0
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_PUBLIC_URL: wss://${DOMAIN:-localhost}/livekit
+    depends_on:
+      - db
+      - redis
+      - livekit
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: watchparty-prod-web
+    restart: always
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata_prod:
+  redisdata_prod:

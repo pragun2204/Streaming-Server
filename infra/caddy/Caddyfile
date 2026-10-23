@@ -1,0 +1,29 @@
+{$DOMAIN:localhost} {
+    encode gzip zstd
+
+    # Frontend Single Page App
+    handle /assets/* {
+        reverse_proxy web:80
+    }
+
+    # Backend API routes
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+
+    # WebSocket events for room and playback synchronization
+    handle /ws/* {
+        reverse_proxy api:8000
+    }
+
+    # LiveKit SFU signaling
+    handle /livekit/* {
+        uri strip_prefix /livekit
+        reverse_proxy livekit:7880
+    }
+
+    # Fallback to web SPA router
+    handle {
+        reverse_proxy web:80
+    }
+}
